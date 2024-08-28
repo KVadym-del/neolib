@@ -8,38 +8,84 @@ string::string(const char *str)
 {
     if (str)
     {
-        m_size = string_tools::string_length(str);
-        m_capacity = m_size + 1;
-        m_data = new char[m_capacity];
-        string_tools::string_copy(m_data, str);
+        if (str)
+        {
+            m_size = string_tools::string_length(str);
+            if (m_size >= m_preallocated_size)
+            {
+                m_capacity = m_size + 1;
+                m_dynamic_data = new char[m_capacity];
+                string_tools::string_copy(m_dynamic_data, str);
+            }
+            else
+            {
+                m_capacity = m_preallocated_size;
+                string_tools::string_copy(m_static_data, str);
+            }
+        }
     }
 }
 string::string(const string &other)
 {
     m_size = other.m_size;
-    m_capacity = other.m_capacity;
-    m_data = new char[m_capacity];
-    string_tools::string_copy(m_data, other.m_data);
+    if (m_size >= m_preallocated_size)
+    {
+        m_capacity = other.m_capacity;
+        m_dynamic_data = new char[m_capacity];
+        string_tools::string_copy(m_dynamic_data, other.m_dynamic_data);
+    }
+    else
+    {
+        m_capacity = m_preallocated_size;
+        string_tools::string_copy(m_static_data, other.m_static_data);
+    }
 }
-string::string(string &&other) noexcept : m_data(other.m_data), m_size(other.m_size), m_capacity(other.m_capacity)
+string::string(string &&other) noexcept
 {
-    other.m_data = nullptr;
+    if (other.m_size >= m_preallocated_size)
+    {
+        m_dynamic_data = other.m_dynamic_data;
+        m_size = other.m_size;
+        m_capacity = other.m_capacity;
+        other.m_dynamic_data = nullptr;
+    }
+    else
+    {
+        string_tools::string_copy(m_static_data, other.m_static_data);
+        m_size = other.m_size;
+        m_capacity = m_preallocated_size;
+    }
     other.m_size = 0;
 }
 string::~string()
 {
-    delete[] m_data;
+    if (m_size >= m_preallocated_size)
+    {
+        delete[] m_dynamic_data;
+    }
 }
 
 string &string::operator=(const string &other)
 {
     if (this != &other)
     {
-        delete[] m_data;
+        if (m_size >= m_preallocated_size)
+        {
+            delete[] m_dynamic_data;
+        }
+
         m_size = other.m_size;
-        m_capacity = other.m_capacity;
-        m_data = new char[m_capacity];
-        string_tools::string_copy(m_data, other.m_data);
+        if (m_size >= m_preallocated_size)
+        {
+            m_capacity = other.m_capacity;
+            m_dynamic_data = new char[m_capacity];
+            string_tools::string_copy(m_dynamic_data, other.m_dynamic_data);
+        }
+        else
+        {
+            m_capacity = m_preallocated_size;
+            string_tools::string_copy(m_static_data, other.m_static_data);
+        }
     }
     return *this;
 }
@@ -48,11 +94,24 @@ string &string::operator=(string &&other) noexcept
 {
     if (this != &other)
     {
-        delete[] m_data;
-        m_data = other.m_data;
-        m_size = other.m_size;
-        m_capacity = other.m_capacity;
-        other.m_data = nullptr;
+        if (m_size >= m_preallocated_size)
+        {
+            delete[] m_dynamic_data;
+        }
+
+        if (other.m_size >= m_preallocated_size)
+        {
+            m_dynamic_data = other.m_dynamic_data;
+            m_size = other.m_size;
+            m_capacity = other.m_capacity;
+            other.m_dynamic_data = nullptr;
+        }
+        else
+        {
+            string_tools::string_copy(m_static_data, other.m_static_data);
+            m_size = other.m_size;
+            m_capacity = m_preallocated_size;
+        }
         other.m_size = 0;
     }
     return *this;
@@ -60,7 +119,7 @@ string &string::operator=(string &&other) noexcept
 
 const char *string::c_str() const
 {
-    return m_data;
+    return (m_size >= m_preallocated_size) ? m_dynamic_data : m_static_data;
 }
 
 types::size string::size() const
@@ -70,7 +129,7 @@ types::size string::size() const
 
 bool string::operator==(const string &other) const
 {
-    return string_tools::string_compare(m_data, other.m_data) == 0;
+    return string_tools::string_compare(c_str(), other.c_str());
 }
 
 bool string::operator!=(const string &other) const
@@ -80,12 +139,12 @@ bool string::operator!=(const string &other) const
 
 bool string::operator<(const string &other) const
 {
-    return string_tools::string_length(m_data) < string_tools::string_length(other.m_data);
+    return string_tools::string_length(c_str()) < string_tools::string_length(other.c_str());
 }
 
 bool string::operator>(const string &other) const
 {
-    return string_tools::string_length(m_data) > string_tools::string_length(other.m_data);
+    return string_tools::string_length(c_str()) > string_tools::string_length(other.c_str());
 }
 
 bool string::operator<=(const string &other) const
@@ -102,10 +161,19 @@ string string::operator+(const string &other) const
 {
     string result;
     result.m_size = m_size + other.m_size;
-    result.m_capacity = result.m_size + 1;
-    result.m_data = new char[result.m_capacity];
-    string_tools::string_copy(result.m_data, m_data);
-    string_tools::string_concat(result.m_data, other.m_data);
+    if (result.m_size >= m_preallocated_size)
+    {
+        result.m_capacity = result.m_size + 1;
+        result.m_dynamic_data = new char[result.m_capacity];
+        string_tools::string_copy(result.m_dynamic_data, c_str());
+        string_tools::string_concat(result.m_dynamic_data, other.c_str());
+    }
+    else
+    {
+        result.m_capacity = m_preallocated_size;
+        string_tools::string_copy(result.m_static_data, c_str());
+        string_tools::string_concat(result.m_static_data, other.c_str());
+    }
     return result;
 }
 
@@ -121,7 +189,7 @@ char string::operator[](types::size index) const
     {
         return '\0';
     }
-    return m_data[index];
+    return (m_size >= m_preallocated_size) ? m_dynamic_data[index] : m_static_data[index];
 }
 } // namespace neostd::types
 

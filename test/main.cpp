@@ -5,8 +5,6 @@
 
 #include <iostream>
 
-#include <string>
-
 using namespace neostd;
 
 types::int32 main(void)
@@ -19,9 +17,6 @@ types::int32 main(void)
 
     std::cout << a.get()[0] << std::endl;
 
-    types::string s1("Hello");
-    types::string s2(" World!!!");
-    types::string s3 = s1 + s2;
-    std::cout << s3.c_str() << std::endl;
+    types::string str = "Hello, World! This is a test string!";
     return 0;
 }

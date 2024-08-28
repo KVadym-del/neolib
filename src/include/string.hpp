@@ -33,9 +33,11 @@ class string
     char operator[](types::size index) const;
 
   private:
-    char *m_data = nullptr;
+    constexpr static types::size m_preallocated_size = 64;
     types::size m_size = 0;
-    types::size m_capacity = 0;
+    types::size m_capacity = m_preallocated_size;
+    char m_static_data[m_preallocated_size];
+    char *m_dynamic_data = nullptr;
 };
 } // namespace neostd::types
 
