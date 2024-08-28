@@ -1,6 +1,6 @@
-#include "string.hpp"
+#include "include/string.hpp"
 
-#include "memory.hpp"
+#include "include/memory.hpp"
 
 namespace neostd::types
 {
