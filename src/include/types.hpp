@@ -17,4 +17,6 @@ using float32 = float;
 using float64 = double;
 
 using byte = unsigned char;
+
+using ptrdiff = decltype(reinterpret_cast<byte *>(0) - reinterpret_cast<byte *>(0));
 } // namespace neostd::types
