@@ -119,6 +119,6 @@ template <typename T, types::size S> class static_array
   private:
     T m_data[S]{};
     const types::size m_size{S};
-    types::size m_lengh;
+    types::size m_lengh{};
 };
 } // namespace neostd::types
